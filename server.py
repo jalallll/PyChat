@@ -4,11 +4,35 @@ import os
 import sys
 import selectors
 
+# Default messages
+CLIENT_DISCONNECT_MSG = "DISCONNECT CHAT/1.0"
+SERVER_DISCONNECT_RES = "Server: Disconnecting user"
+SERVER_EMPTY_MSG_RES = "DO NOT SEND BLANK MESSAGES"
+
 # Selector to help select incoming data and connections from multiple sources
 sel = selectors.DefaultSelector()
 
 # list of clients connected
 client_list = []
+
+# send response to all connected clients
+def message_all(msg):
+    for client in client_list:
+        client[1].send(msg.encode())
+
+# Send response to all clients except specified user
+def forward_message(msg, user_name):
+    for client in client_list:
+        if client[0] == user_name:
+            pass
+        client[1].send((f"\n@{user_name}: {msg}").encode())
+
+# Remove client
+def remove_client(sock):
+    for client in client_list:
+        if client[1] == sock:
+            client_list.remove(client)
+
 
 def signal_handler(signum, frame):
     print("Interruption received, shutting down server")
@@ -31,6 +55,25 @@ def get_client_user_name(sock):
             return client[0]
     return None
 
+def accept_message(sock, mask):
+    msg = read_line(sock)
+    user_name = get_client_user_name(sock)
+
+    # Check if message received is empty
+    if msg == '':
+        sock.send(SERVER_EMPTY_MSG_RES.encode())
+    # If message received is not empty
+    else:
+        # Check for disconnect message
+        if (msg.equals(CLIENT_DISCONNECT_MSG)):
+            # Send DC response to all clients connected 
+            dc_res = f"\n{SERVER_DISCONNECT_RES} @{user_name}"
+            print(dc_res)
+            message_all(dc_res)
+        else:
+            forward_message(msg, user_name)
+
+            
 
 
 # Add a client to the client list 
@@ -88,12 +131,6 @@ def accept_client(sock, mask):
 
                 # Register client socket and wait for read events (inbound messages from client)
                 sel.register(client_sock, selectors.EVENT_READ, accept_message)
-
-        
-
-        
-
-
 
 
 # Main function
