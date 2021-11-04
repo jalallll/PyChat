@@ -20,12 +20,7 @@ def message_all(msg):
     for client in client_list:
         client[1].send(msg.encode())
 
-# Send response to all clients except specified user
-def forward_message(msg, user_name):
-    for client in client_list:
-        if client[0] == user_name:
-            pass
-        client[1].send((f"\n@{user_name}: {msg}").encode())
+
 
 # Remove client
 def remove_client(sock):
@@ -67,11 +62,16 @@ def accept_message(sock, mask):
         # Check for disconnect message
         if (msg.equals(CLIENT_DISCONNECT_MSG)):
             # Send DC response to all clients connected 
-            dc_res = f"\n{SERVER_DISCONNECT_RES} @{user_name}"
+            dc_res = f"{SERVER_DISCONNECT_RES} @{user_name}"
             print(dc_res)
             message_all(dc_res)
         else:
-            forward_message(msg, user_name)
+            for client in client_list:
+                if client[0] == user_name:
+                    continue
+                client_sock = client[1]
+                msg = f"@{user_name}: {msg}".encode()
+                client_sock.send(msg)
 
             
 
@@ -97,45 +97,43 @@ def read_line(sock):
 
 # Accept new inbound client connections
 def accept_client(sock, mask):
-    # Check if new socket object is connecting to server
-    if get_client_user_name(sock) == None:
-        # Accept connection
-        client_sock, addr = sock.accept()
-        print(f"\nNew client connected from: {addr}")
-        # Read message from socket and split between spaces
-        msg = read_line(client_sock)
-        msg_split = msg.split()
 
-        # Registration message not proper format (send error response)
-        if(len(msg_split) != 3) or (msg_split[0] != "REGISTER") or (msg_split[2] != "CHAT/1.0"):
-            INVALID_REG_MSG = f"Error Invalid Registration\nReceived {msg}\nNot of form: REGISTER username CHAT/1.0"
-            print(INVALID_REG_MSG)
-            client_sock.send(INVALID_REG_MSG.encode())
-            client_sock.send("400 Invalid Response".encode())
-            client_sock.close()
-        # Registration msg in proper format
-        else:
-            user_name = msg_split[1]
-            # If username is unique
-            if get_client_socket(user_name) == None:
-                # Append client object to client_list
-                client_obj = (user_name, sock)
-                client_list.append(client_obj)
-                # Send registration message to client and print to server 
-                welcome_msg = f"@Server: Welcome {user_name}!"
-                print(welcome_msg)
-                client_sock.send("200 registration successful".encode())
-                message_all(welcome_msg)
+    # Accept connection
+    client_sock, addr = sock.accept()
+    print(f"\nNew client connected from: {addr}")
+    # Read message from socket and split between spaces
+    msg = read_line(client_sock)
+    msg_split = msg.split()
 
-                # Set client socket to non blocking
-                client_sock.setblocking(False)
+    # Registration message not proper format (send error response)
+    if(len(msg_split) != 3) or (msg_split[0] != "REGISTER") or (msg_split[2] != "CHAT/1.0"):
+        client_sock.send("400 Invalid Response".encode())
+        client_sock.close()
+    # Registration msg in proper format
+    else:
+        user_name = msg_split[1]
+        # If username is unique
+        if get_client_socket(user_name) == None:
+            # Append client object to client_list
+            client_obj = (user_name, sock)
+            client_list.append(client_obj)
+            # Send registration message to client and print to server 
+            welcome_msg = f"@Server: Welcome {user_name}!"
+            print(welcome_msg)
+            client_sock.send("200 registration successful".encode())
 
-                # Register client socket and wait for read events (inbound messages from client)
-                sel.register(client_sock, selectors.EVENT_READ, accept_message)
+            # Set client socket to non blocking
+            client_sock.setblocking(False)
+
+            # Register client socket and wait for read events (inbound messages from client)
+            sel.register(client_sock, selectors.EVENT_READ, accept_message)
 
 
 # Main function
 def main():
+    global CLIENT_DISCONNECT_MSG 
+    global SERVER_DISCONNECT_RES 
+    global SERVER_EMPTY_MSG_RES 
     # signal handler for ctrl + c event
     signal.signal(signal.SIGINT, signal_handler)
     # create server socket

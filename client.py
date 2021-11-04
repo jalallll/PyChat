@@ -4,6 +4,18 @@ import selectors
 from urllib.parse import urlparse
 import sys
 
+sel = selectors.DefaultSelector()
+
+ # client tcp socket
+SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+USER = ""
+
+def handle_keyboard_input(sock, mask):
+    line=sys.stdin.readline()
+    message = f'@{USER}: {line}'
+    SOCK.send(message.encode())
+    do_prompt()
+
 # Read each char from the connection
 # Return the line at \n character and remove \r character
 def read_line(sock):
@@ -19,12 +31,13 @@ def read_line(sock):
             line = line + char
     return line
 
+# Display a prompt for the client to type messages
 def do_prompt(skip_line=False):
     if (skip_line):
         print("")
     print("> ", end='', flush=True)
 
-
+# Handle messages from server
 def handle_server_msgs(sock, mask):
     msg = read_line(sock)
     msg_split = msg.split()
@@ -58,17 +71,24 @@ def parser():
 def connect(USER, HOST, PORT):
     try:
         print(f"\nAttempting Connection\n[Host: {HOST}]\n[Port:{PORT}]")
-        # client tcp socket
-        SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+       
         SOCK.connect((HOST,PORT))
 
         # Send registration message to server
         reg_msg = f"REGISTER {USER} CHAT/1.0\n"
         SOCK.send(reg_msg.encode())
 
-        server_res = SOCK.recv()
+        server_res = read_line(SOCK)
+        reponse = server_res.split(' ')
 
-        return SOCK
+        if reponse[0] != '200':
+            print('Error:  An error response was received from the server.  Details:\n')
+            print(reponse)
+            print('Exiting now ...')
+            sys.exit(1)   
+        else:
+            print('Registration successful.  Ready for messaging!')
+            return SOCK
     except ConnectionRefusedError:
         print("\nThe connection was refused\n")
         sys.exit(1)
@@ -76,9 +96,33 @@ def connect(USER, HOST, PORT):
     
 
 def main():
+    global SOCK
+    global USER
     USER, HOST, PORT = parser()
     SOCK = connect(USER, HOST, PORT)
     print("Connection Successful!")
+    # If an error is returned from the server, we dump everything sent and
+    # exit right away.  
+    
+    
+
+    # Set up our selector.
+
+    SOCK.setblocking(False)
+    sel.register(SOCK, selectors.EVENT_READ, handle_server_msgs)
+    sel.register(sys.stdin, selectors.EVENT_READ, handle_keyboard_input)
+    
+    # Prompt the user before beginning.
+
+    do_prompt()
+
+    # Now do the selection.
+
+    while(True):
+        events = sel.select()
+        for key, mask in events:
+            callback = key.data
+            callback(key.fileobj, mask)    
     
 
 
