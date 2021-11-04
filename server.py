@@ -71,6 +71,11 @@ def accept_message(sock, mask):
             # Send DC response to all clients connected 
             dc_res = f"Disconnecting @{user_name}\n"
             print(dc_res)
+            for client in client_list:
+                if client[0] == user_name:
+                    dc_sock = client[1]
+            msg = "DISCONNECT".encode()
+            dc_sock.send(msg)
             remove_client(user_name)
             sel.unregister(sock)
             sock.close()

@@ -47,6 +47,7 @@ def read_line(sock):
 def handle_server_msgs(sock, mask):
     msg = read_line(sock)
     msg_split = msg.split(' ')
+    print(f"msg_split {msg_split}")
     if(msg_split[0]=='DISCONNECT'):
         print("\n[DISCONNECTING FROM SERVER]\n")
         sys.exit(0)
