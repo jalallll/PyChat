@@ -17,18 +17,83 @@ def signal_handler(signum, frame):
         client[1].send(message.encode())
     sys.exit()
 
-# Find client socket given the username
-def find_client_socket(user_name):
+# Get client socket given the username
+def get_client_socket(user_name):
     for client in client_list:
         if client[0].equals(user_name):
-            return client
+            return client[1]
     return None
+
+# Get client username given the socket
+def get_client_user_name(sock):
+    for client in client_list:
+        if client[1] == sock:
+            return client[0]
+    return None
+
+
 
 # Add a client to the client list 
 def add_client(user_name, user_socket):
     client_list.append((user_name, user_socket))
 
-def accept_client():
+# Read each char from the connection
+# Return the line at \n character and remove \r character
+def read_line(sock):
+    flag = True
+    line = ''
+    while flag:
+        char = sock.recv(1).decode()
+        if char == '\n':
+            flag = False
+        elif char == '\r':
+            pass
+        else:
+            line = line + char
+    return line
+
+# Accept new inbound client connections
+def accept_client(sock, mask):
+    # Check if new socket object is connecting to server
+    if get_client_user_name(sock) == None:
+        # Accept connection
+        client_sock, addr = sock.accept()
+        print(f"\nNew client connected from: {addr}")
+        # Read message from socket and split between spaces
+        msg = read_line(client_sock)
+        msg_split = msg.split()
+
+        # Registration message not proper format (send error response)
+        if(len(msg_split) != 3) or (msg_split[0] != "REGISTER") or (msg_split[2] != "CHAT/1.0"):
+            INVALID_REG_MSG = f"Error Invalid Registration\nReceived {msg}\nNot of form: REGISTER username CHAT/1.0"
+            print(INVALID_REG_MSG)
+            client_sock.send(INVALID_REG_MSG.encode())
+            client_sock.send("400 Invalid Response".encode())
+            client_sock.close()
+        # Registration msg in proper format
+        else:
+            user_name = msg_split[1]
+            # If username is unique
+            if get_client_socket(user_name) == None:
+                # Append client object to client_list
+                client_obj = (user_name, sock)
+                client_list.append(client_obj)
+                # Send registration message to client and print to server 
+                REG_SUCCESS_MSG = f"@Server: Welcome {user_name}!"
+                print(REG_SUCCESS_MSG)
+                client_sock.send(f"{REG_SUCCESS_MSG}\n200 registration successful".encode())
+
+                # Set client socket to non blocking
+                client_sock.setblocking(False)
+
+                # Register client socket and wait for read events (inbound messages from client)
+                sel.register(client_sock, selectors.EVENT_READ, accept_message)
+
+        
+
+        
+
+
 
 
 # Main function
