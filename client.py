@@ -4,7 +4,36 @@ import selectors
 from urllib.parse import urlparse
 import sys
 
+# Read each char from the connection
+# Return the line at \n character and remove \r character
+def read_line(sock):
+    flag = True
+    line = ''
+    while flag:
+        char = sock.recv(1).decode()
+        if char == '\n':
+            flag = False
+        elif char == '\r':
+            pass
+        else:
+            line = line + char
+    return line
 
+def do_prompt(skip_line=False):
+    if (skip_line):
+        print("")
+    print("> ", end='', flush=True)
+
+
+def handle_server_msgs(sock, mask):
+    msg = read_line(sock)
+    msg_split = msg.split()
+    if(msg_split[0]=='DISCONNECT'):
+        print("\n[DISCONNECTING FROM SERVER]\n")
+        sys.exit()
+    else:
+        print(msg)
+        do_prompt()
 
 # Parse username, server hostname, server port from command line args
 def parser():
@@ -32,6 +61,13 @@ def connect(USER, HOST, PORT):
         # client tcp socket
         SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         SOCK.connect((HOST,PORT))
+
+        # Send registration message to server
+        reg_msg = f"REGISTER {USER} CHAT/1.0\n"
+        SOCK.send(reg_msg.encode())
+
+        server_res = SOCK.recv()
+
         return SOCK
     except ConnectionRefusedError:
         print("\nThe connection was refused\n")
@@ -43,9 +79,8 @@ def main():
     USER, HOST, PORT = parser()
     SOCK = connect(USER, HOST, PORT)
     print("Connection Successful!")
-    # Send registration message to server
-    reg_msg = f"REGISTER {USER} CHAT/1.0\n"
-    SOCK.send(reg_msg.encode())
+    
+
 
 
 

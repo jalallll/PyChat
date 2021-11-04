@@ -122,9 +122,10 @@ def accept_client(sock, mask):
                 client_obj = (user_name, sock)
                 client_list.append(client_obj)
                 # Send registration message to client and print to server 
-                REG_SUCCESS_MSG = f"@Server: Welcome {user_name}!"
-                print(REG_SUCCESS_MSG)
-                client_sock.send(f"{REG_SUCCESS_MSG}\n200 registration successful".encode())
+                welcome_msg = f"@Server: Welcome {user_name}!"
+                print(welcome_msg)
+                client_sock.send("200 registration successful".encode())
+                message_all(welcome_msg)
 
                 # Set client socket to non blocking
                 client_sock.setblocking(False)
