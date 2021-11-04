@@ -17,8 +17,21 @@ def signal_handler(signum, frame):
         client[1].send(message.encode())
     sys.exit()
 
+# Find client socket given the username
+def find_client_socket(user_name):
+    for client in client_list:
+        if client[0].equals(user_name):
+            return client
+    return None
+
+# Add a client to the client list 
+def add_client(user_name, user_socket):
+    client_list.append((user_name, user_socket))
+
+def accept_client():
 
 
+# Main function
 def main():
     # signal handler for ctrl + c event
     signal.signal(signal.SIGINT, signal_handler)
@@ -34,6 +47,9 @@ def main():
 
     # make server socket non blocking
     server_socket.setblocking(False)
+
+    # Register server socket for read operations
+    sel.register(server_socket, selectors.EVENT_READ, accept_client)
 
 
 if __name__ == '__main__':
