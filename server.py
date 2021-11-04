@@ -2,6 +2,10 @@ import socket
 import signal
 import os
 import sys
+import selectors
+
+# Selector to help select incoming data and connections from multiple sources
+sel = selectors.DefaultSelector()
 
 # list of clients connected
 client_list = []
