@@ -4,14 +4,7 @@ import selectors
 from urllib.parse import urlparse
 import sys
 
-# Username
-USER = ''
-# Server host
-HOST = ''
-# Server port
-PORT = ''
-# client tcp socket
-SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 
 # Parse username, server hostname, server port from command line args
 def parser():
@@ -26,29 +19,29 @@ def parser():
             raise ValueError
         HOST = server_address.hostname
         PORT = server_address.port
+        USER = args.user
+        return (USER, HOST, PORT)
     except ValueError:
         print('Error:  Invalid server.  Enter a URL of the form: chat://host:port')
         sys.exit(1)
-    USER = args.user
-    return (USER, HOST, PORT)
 
 # Connect to server
 def connect(USER, HOST, PORT):
     try:
-        print(f"Attempting Connection\n[Host: {HOST}]\n[Port:{PORT}]")
+        print(f"\nAttempting Connection\n[Host: {HOST}]\n[Port:{PORT}]")
+        # client tcp socket
+        SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         SOCK.connect((HOST,PORT))
+        return SOCK
     except ConnectionRefusedError:
-        print("The connection was refused")
+        print("\nThe connection was refused\n")
+        sys.exit(1)
     
     
 
 def main():
-    global USER
-    global SOCK
-    global HOST
-    global PORT
     USER, HOST, PORT = parser()
-    connect(USER, HOST, PORT)
+    SOCK = connect(USER, HOST, PORT)
     print("Connection Successful!")
     # Send registration message to server
     reg_msg = f"REGISTER {USER} CHAT/1.0\n"
