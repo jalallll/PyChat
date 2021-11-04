@@ -153,6 +153,13 @@ def main():
     # Register server socket for read operations
     sel.register(server_socket, selectors.EVENT_READ, accept_client)
 
+    # Keep the server running forever, waiting for connections or messages.
+    while(True):
+        events = sel.select()
+        for key, mask in events:
+            callback = key.data
+            callback(key.fileobj, mask)    
+
 
 if __name__ == '__main__':
     main()
