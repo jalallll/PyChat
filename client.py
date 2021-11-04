@@ -3,33 +3,20 @@ import argparse
 import selectors
 from urllib.parse import urlparse
 import sys
+import signal
 
 sel = selectors.DefaultSelector()
 
- # client tcp socket
-SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-USER = ""
+# client tcp socket
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+USER = ''
 
 def handle_keyboard_input(sock, mask):
     line=sys.stdin.readline()
     message = f'@{USER}: {line}'
-    SOCK.send(message.encode())
+    client_socket.send(message.encode())
     do_prompt()
 
-# Read each char from the connection
-# Return the line at \n character and remove \r character
-def read_line(sock):
-    flag = True
-    line = ''
-    while flag:
-        char = sock.recv(1).decode()
-        if char == '\n':
-            flag = False
-        elif char == '\r':
-            pass
-        else:
-            line = line + char
-    return line
 
 # Display a prompt for the client to type messages
 def do_prompt(skip_line=False):
@@ -37,13 +24,32 @@ def do_prompt(skip_line=False):
         print("")
     print("> ", end='', flush=True)
 
+# Read each char from the connection
+# Return the line at \n character and remove \r character
+def read_line(sock):
+    print("read line")
+    done = False
+    line = ''
+    print("before while")
+    while (not done):
+        char = sock.recv(1).decode()
+        if (char == '\r'):
+            pass
+        elif (char == '\n'):
+            done = True
+        else:
+            line = line + char
+    print(f"line 40: line: {line}")
+    return line
+
+
 # Handle messages from server
 def handle_server_msgs(sock, mask):
     msg = read_line(sock)
-    msg_split = msg.split()
+    msg_split = msg.split(' ')
     if(msg_split[0]=='DISCONNECT'):
         print("\n[DISCONNECTING FROM SERVER]\n")
-        sys.exit()
+        sys.exit(0)
     else:
         print(msg)
         do_prompt()
@@ -67,57 +73,64 @@ def parser():
         print('Error:  Invalid server.  Enter a URL of the form: chat://host:port')
         sys.exit(1)
 
-# Connect to server
-def connect(USER, HOST, PORT):
+
+    
+def signal_handler(sig, frame):
+    print('Interrupt received, shutting down ...')
+    message=f'DISCONNECT {USER} CHAT/1.0\n'
+    client_socket.send(message.encode())
+    sys.exit(0)
+
+def main():
+    global client_socket
+    global USER
+    signal.signal(signal.SIGINT, signal_handler)
+
+    USER, HOST, PORT = parser()
+
+
+
     try:
-        print(f"\nAttempting Connection\n[Host: {HOST}]\n[Port:{PORT}]")
-       
-        SOCK.connect((HOST,PORT))
-
-        # Send registration message to server
-        reg_msg = f"REGISTER {USER} CHAT/1.0\n"
-        SOCK.send(reg_msg.encode())
-
-        server_res = read_line(SOCK)
-        reponse = server_res.split(' ')
-
-        if reponse[0] != '200':
-            print('Error:  An error response was received from the server.  Details:\n')
-            print(reponse)
-            print('Exiting now ...')
-            sys.exit(1)   
-        else:
-            print('Registration successful.  Ready for messaging!')
-            return SOCK
+        print(f"\nAttempting Connection\n[Host: {HOST}]\n[Port:{PORT}]")     
+        client_socket.connect((HOST,PORT))
     except ConnectionRefusedError:
         print("\nThe connection was refused\n")
         sys.exit(1)
     
     
-
-def main():
-    global SOCK
-    global USER
-    USER, HOST, PORT = parser()
-    SOCK = connect(USER, HOST, PORT)
+    # Successful Connection, register new user
     print("Connection Successful!")
-    # If an error is returned from the server, we dump everything sent and
-    # exit right away.  
-    
-    
+    reg_msg = f"REGISTER {USER} CHAT/1.0\n"
+    client_socket.send(reg_msg.encode())
+    print("line 102 sent res")
 
+    # Receive server response
+    print("recv server res")
+    server_res = read_line(client_socket)
+    print(f"server_res {server_res}")
+    response = server_res.split(' ')
+
+    if response[0] != '200':
+        print('Error:  An error response was received from the server.  Details:\n')
+        print(f"[Server Response]: [{server_res}]")
+        print('Exiting now ...')
+        sys.exit(1)   
+    else:
+        print('Registration successful.  Ready for messaging!')
+    
+    print("setup selector")
     # Set up our selector.
 
-    SOCK.setblocking(False)
-    sel.register(SOCK, selectors.EVENT_READ, handle_server_msgs)
+    client_socket.setblocking(False)
+    sel.register(client_socket, selectors.EVENT_READ, handle_server_msgs)
     sel.register(sys.stdin, selectors.EVENT_READ, handle_keyboard_input)
     
     # Prompt the user before beginning.
-
+    print("line 123")
     do_prompt()
 
     # Now do the selection.
-
+    print("line 127")
     while(True):
         events = sel.select()
         for key, mask in events:
