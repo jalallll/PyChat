@@ -99,6 +99,9 @@ def accept_message(sock, mask):
             elif (words[1]=='!list'):
                 list_res = getAll()
                 message(sock, list_res)
+            elif words[1]=='!exit':
+                remove_sock(sock)
+                message_all(f"Disconnected @{user_name}")
             elif (words[1]=='!follow?'):
                 if following is not None:
                     following_str = ""
