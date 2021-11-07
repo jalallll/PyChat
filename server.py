@@ -86,16 +86,19 @@ def accept_message(sock, mask):
             msg = "help"
             message(sock, msg)
         elif (words[1]=='!list'):
-            list_res = ""
-            for client in client_list:
-                if(client[0]!=""):
-                    list_res += client[0] + ", "
-            message(sock, list_res.strip(', '))
+            list_res = getAll()
+            message(sock, list_res)
         else:
             # Send the message to every client (except the sender)
             forward_message(sock, msg)
 
-
+# get list of all usernames connected 
+def getAll():
+    list_res = ""
+    for client in client_list:
+        if(client[0]!=""):
+            list_res += client[0] + ", "
+    return list_res.strip(', ')
 
 
 # Accept new inbound client connections
