@@ -27,10 +27,8 @@ def do_prompt(skip_line=False):
 # Read each char from the connection
 # Return the line at \n character and remove \r character
 def read_line(sock):
-    print("read line")
     done = False
     line = ''
-    print("before while")
     while (not done):
         char = sock.recv(1).decode()
         if (char == '\r'):
@@ -39,7 +37,6 @@ def read_line(sock):
             done = True
         else:
             line = line + char
-    print(f"line 40: line: {line}")
     return line
 
 
@@ -47,7 +44,6 @@ def read_line(sock):
 def handle_server_msgs(sock, mask):
     msg = read_line(sock)
     msg_split = msg.split(' ')
-    print(f"msg_split {msg_split}")
     if(msg_split[0]=='DISCONNECT'):
         print("\n[DISCONNECTING FROM SERVER]\n")
         sys.exit(0)
@@ -103,12 +99,9 @@ def main():
     print("Connection Successful!")
     reg_msg = f"REGISTER {USER} CHAT/1.0\n"
     client_socket.send(reg_msg.encode())
-    print("line 102 sent res")
 
     # Receive server response
-    print("recv server res")
     server_res = read_line(client_socket)
-    print(f"server_res {server_res}")
     response = server_res.split(' ')
 
     if response[0] != '200':
@@ -119,19 +112,16 @@ def main():
     else:
         print('Registration successful.  Ready for messaging!')
     
-    print("setup selector")
     # Set up our selector.
 
     client_socket.setblocking(False)
-    sel.register(client_socket, selectors.EVENT_READ, handle_server_msgs)
-    sel.register(sys.stdin, selectors.EVENT_READ, handle_keyboard_input)
+    sel.register(client_socket, selectors.EVENT_READ , handle_server_msgs)
+    sel.register(sys.stdin, selectors.EVENT_READ| selectors.EVENT_WRITE, handle_keyboard_input)
     
     # Prompt the user before beginning.
-    print("line 123")
     do_prompt()
 
     # Now do the selection.
-    print("line 127")
     while(True):
         events = sel.select()
         for key, mask in events:

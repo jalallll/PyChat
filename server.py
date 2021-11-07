@@ -66,7 +66,6 @@ def accept_message(sock, mask):
         words = msg.split(' ')
         print(msg)
         # Check for disconnect message
-        print(f"words[0]: {words}")
         if (words[1]=='DISCONNECT'):
             # Send DC response to all clients connected 
             dc_res = f"Disconnecting @{user_name}\n"
@@ -79,13 +78,19 @@ def accept_message(sock, mask):
             remove_client(user_name)
             sel.unregister(sock)
             sock.close()
+        elif (words[1]=='help'):
+            for client in client_list:
+                if client[0] == user_name:
+                    sock = client[1]
+            msg = "[SERVER]:Help:"
+            print(msg)
+            sock.send(msg.encode())
         else:
             # Send the message to every client (except the sender)
             for client in client_list:
                 if client[0] == user_name:
                     continue
                 client_sock = client[1]
-                print(f"line 81 msg: {msg}")
                 fwd_msg = f"{msg}\n"
                 client_sock.send(fwd_msg.encode())
 
@@ -122,7 +127,6 @@ def accept_client(sock, mask):
 
     # Read message from socket and split between spaces
     msg = read_line(client_sock)
-    print(f"line 117 {msg}")
     msg_split = msg.split(' ')
 
     # Registration message not proper format (send error response)
@@ -134,13 +138,10 @@ def accept_client(sock, mask):
     # Registration msg in proper format
     else:
         user_name = msg_split[1]
-        print(f"line 124: username {user_name}")
         # If username is unique
         if get_client_socket(user_name) == None:
             # Append client object to client_list
-            print(f"line 130: {len(client_list)}")
             add_client(user_name, client_sock )
-            print(f"line 132: {len(client_list)}")
 
             # Send registration message to client and print to server 
             welcome_msg = f"@Server: Welcome {user_name}!"
@@ -150,7 +151,6 @@ def accept_client(sock, mask):
 
             # Set client socket to non blocking
             client_sock.setblocking(False)
-            print("sel reg")
             # Register client socket and wait for read events (inbound messages from client)
             sel.register(client_sock, selectors.EVENT_READ, accept_message)
         else:
