@@ -64,8 +64,20 @@ def main():
                     # We can read from standard input
                     else:
                         msg = sys.stdin.readline()
-                        send_msg = f"@{USER}: {msg}"
-                        client_socket.send(send_msg.encode())
+                        words = msg.split()
+                        if words[0]=="!attach":
+                            send_msg = f"@{USER}: {msg}"
+                            client_socket.send(send_msg.encode())
+                            #name = words[1]
+                            file = open('1.txt', 'rb')
+                            data = file.read(1024)
+                            while data:
+                                client_socket.send(data)
+                                data = file.read(1024)
+                            file.close()
+                        else:
+                            send_msg = f"@{USER}: {msg}"
+                            client_socket.send(send_msg.encode())
                         print('\n')
         except BlockingIOError as e: 
             pass

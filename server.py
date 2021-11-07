@@ -102,6 +102,15 @@ def accept_message(sock, mask):
             elif words[1]=='!exit':
                 remove_sock(sock)
                 message_all(f"Disconnected @{user_name}")
+            elif words[1]=='!attach':
+                #file_name = words[2]
+                #print(f"line 107: writing file {file_name}")
+                file = open('server.txt', 'wb')
+                chunk = sock.recv(1024)
+                while chunk:
+                    file.write(chunk)
+                    chunk = sock.recv(1024)
+                file.close()
             elif (words[1]=='!follow?'):
                 if following is not None:
                     following_str = ""
