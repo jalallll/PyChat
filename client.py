@@ -68,8 +68,8 @@ def main():
                         if words[0]=="!attach":
                             send_msg = f"@{USER}: {msg}"
                             client_socket.send(send_msg.encode())
-                            #name = words[1]
-                            file = open('1.txt', 'rb')
+                            name = words[1]
+                            file = open(name, 'rb')
                             data = file.read(1024)
                             while data:
                                 client_socket.send(data)

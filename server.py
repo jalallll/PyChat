@@ -28,7 +28,9 @@ def main():
         '!follow term': 'Follow the specific term (if you are NOT currently following it)' ,
         '!unfollow term': 'Unfollow the specific term (if you are currently following it)',
         '!follow @user': 'Follow the specific user (if you are NOT currently following it)',
-        '!unfollow @user': 'Unfollow the specific user (if you are currently following it'
+        '!unfollow @user': 'Unfollow the specific user (if you are currently following it',
+        '!attach filename @user': 'Send filename to user',
+        '!attach filename term': 'Send filename to everyone following a specific term'
     }
     
     
@@ -103,9 +105,9 @@ def accept_message(sock, mask):
                 remove_sock(sock)
                 message_all(f"Disconnected @{user_name}")
             elif words[1]=='!attach':
-                #file_name = words[2]
-                #print(f"line 107: writing file {file_name}")
-                file = open('server.txt', 'wb')
+                file_name = words[2]
+                print(f"line 107: writing file {file_name}")
+                file = open(f"{file_name}", 'wb')
                 chunk = sock.recv(1024)
                 while chunk:
                     file.write(chunk)
