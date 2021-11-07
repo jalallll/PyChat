@@ -110,9 +110,12 @@ def accept_client(sock, mask):
     msg_split = msg.split(' ')
 
     user_name = msg_split[1].strip('\n')
-
+    if (user_name=='all'):
+        message(client_sock, SERVER_RESPONSES['INVALID_REG'])
+        client_sock.close()
+        sel.register(client_sock, selectors.EVENT_READ, accept_message)
     # If username is unique
-    if get_socket_by_username(user_name) == None:
+    elif get_socket_by_username(user_name) == None:
         print(f"\nNew client connected from: {addr}")
         # Append client object to client_list
         client_list.append((user_name, client_sock))
