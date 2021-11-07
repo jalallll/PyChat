@@ -85,6 +85,12 @@ def accept_message(sock, mask):
         elif (words[1]=='help'):
             msg = "help"
             message(sock, msg)
+        elif (words[1]=='!list'):
+            list_res = ""
+            for client in client_list:
+                if(client[0]!=""):
+                    list_res += client[0] + ", "
+            message(sock, list_res.strip(', '))
         else:
             # Send the message to every client (except the sender)
             forward_message(sock, msg)
