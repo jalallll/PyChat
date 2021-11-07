@@ -54,13 +54,23 @@ def main():
                 for reader in readers:
                     # We can read from client socket
                     if reader == client_socket:
-                        res = reader.recv(1024).decode().strip('\n')
+                        response = reader.recv(1024)
+                        words = response.decode().split()
+                        res = response.decode().strip('\n')
                         if res in error_msgs.values():
                             print(res)
                             client_socket.close()
                             print("Exiting...")
                             sys.exit()
+                        # if words[1]=='!attach':
+                        #     file = open(f"new_client_{words[2]}", 'wb')
+                        #     chunk = reader.recv(1024)
+                        #     while chunk:
+                        #         file.write(chunk)
+                        #         chunk = reader.recv(1024)
+                        #     file.close()
                         print(f"{res}\n")
+
                     # We can read from standard input
                     else:
                         msg = sys.stdin.readline()

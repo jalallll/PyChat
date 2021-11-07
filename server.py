@@ -104,15 +104,39 @@ def accept_message(sock, mask):
             elif words[1]=='!exit':
                 remove_sock(sock)
                 message_all(f"Disconnected @{user_name}")
-            elif words[1]=='!attach':
+            elif words[1]=='!attach' and words[2]!="" and words[3]!="":
                 file_name = words[2]
+                users=[]
+                terms = []
+                for x in range(3, len(words)):
+                    if x!="":
+                        if words[x].startswith("@"):
+                            users.append(words[x])
+                        else: terms.append(words[x])
                 print(f"line 107: writing file {file_name}")
-                file = open(f"{file_name}", 'wb')
+                file = open(f"{user_name}_{file_name}", 'wb')
+                #sock.setblocking(True)
                 chunk = sock.recv(1024)
                 while chunk:
+                    print("line 121")
                     file.write(chunk)
                     chunk = sock.recv(1024)
                 file.close()
+                print("saved file, about to open new file")
+                f = open(f"{user_name}_{file_name}", 'rb')
+                print("opened new file")
+                data = f.read(1024)
+                print("read new file data")
+                while data:
+                    print("while loop")
+                    conn = get_socket_by_username(words[3].strip("@"))
+                    conn.send(data)
+                    data = file.read(1024)
+                #sock.setblocking(False)
+
+                file.close()
+                f.close()
+
             elif (words[1]=='!follow?'):
                 if following is not None:
                     following_str = ""
