@@ -89,7 +89,7 @@ def parser():
         return (USER, HOST, PORT)
     except ValueError:
         print('Error:  Invalid server.  Enter a URL of the form: chat://host:port')
-        sys.exit(1)
+        sys.exit()
 
 
 

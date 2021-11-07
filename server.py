@@ -24,8 +24,7 @@ def main():
     'REG_SUCCESS': '200 registration successful'
 }
     
-    # signal handler for ctrl + c event
-    signal.signal(signal.SIGINT, signal_handler)
+    
     # create server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # bind socket to any interface and free port
@@ -36,6 +35,16 @@ def main():
     server_socket.listen(100)
     # make server socket non blocking
     server_socket.setblocking(False)
+
+
+    # handle ctrl + c
+    def signal_handler(signum, frame):
+        print("\nInterruption received, shutting down server")
+        message_all(SERVER_RESPONSES['SERVER_DC'])
+        sys.exit()
+    
+    # signal handler for ctrl + c event
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Register server socket for read operations
     sel.register(server_socket, selectors.EVENT_READ, )
@@ -64,7 +73,7 @@ def accept_message(sock, mask):
     if msg:
         user_name = get_username_by_socket(sock)
         words = msg.split(' ')
-        print(words)
+        print(f"\n{msg}")
         # Check for disconnect message
         if (words[0]=='DISCONNECT' and words[1]==user_name and words[2]=='CHAT/1.0'):
             remove_sock(sock)
@@ -145,11 +154,6 @@ def remove_sock(sock):
                         
 
 
-# handle ctrl + c
-def signal_handler(signum, frame):
-    print("\nInterruption received, shutting down server")
-    message_all(SERVER_RESPONSES['SERVER_DC'])
-    sys.exit()
 
 # Get client socket given the username
 def get_socket_by_username(user_name):
