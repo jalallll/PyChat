@@ -98,14 +98,19 @@ def accept_message(sock, mask):
                 following_str.rstrip(" ")
                 following_str.replace(' ', ',')
                 message(sock, following_str)
-        elif (words[1]=="!follow" and words[2]!= ""):
+        elif (words[1]=="!follow" or words[1]=="!unfollow" and words[2]!=""):
             user = words[2] 
             if get_socket_by_username(user) is None:
                 message(sock, "USER DOES NOT EXIST!")
             else:
                 following = get_Following(sock)
-                following.append(f"@{user}")
-                message(sock, f"You are now following {user}")
+                if words[1]=="!follow":
+                    following.append(f"@{user}")
+                    message(sock, f"You are now following {user}")
+                else:
+                    following.remove(f"@{user}")
+                    message(sock, f"You have unfollowed {user}")
+
         else:
             # Send the message to every client (except the sender)
             forward_message(sock, msg)
