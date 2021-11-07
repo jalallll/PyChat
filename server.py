@@ -139,7 +139,7 @@ def accept_message(sock, mask):
             else:
                 message(sock, f"Unknown command: {words[1]}")
         else:
-            
+            # extract username
             user = words[0].strip(":")
             # Remove username from msg
             words.remove(words[0])
@@ -162,7 +162,13 @@ def accept_message(sock, mask):
                 elif(sock!= None):
                     sock.send(msg.encode())
             
-            # todo: make followers list and send the msg to all followers
+            # send message to every client following that user
+            for client in client_list:
+                following_list = client[2]
+                client_name = "@"+client[0]
+                if user in following_list and user!=client_name:
+                    sock = client[1]
+                    sock.send(msg.encode())
 
 
 
