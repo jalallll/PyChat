@@ -137,7 +137,7 @@ def accept_message(sock, mask):
                             following.remove(term)
                             message(sock, f"You have unfollowed {term}")
             else:
-                message(sock, f"Unknown command: {words[1]}")
+                message(sock, f"Unknown command: {words[1]}. Type !help.")
         else:
             # extract username
             user = words[0].strip(":")
@@ -145,10 +145,14 @@ def accept_message(sock, mask):
             words.remove(words[0])
             # list containing recipient usernames
             broadcast = []
+            # list containing terms
+            terms = []
             # append the usernames of recipients
             for word in words:
                 if word.startswith("@"):
                     broadcast.append(word)
+                else:
+                    terms.append(word)
             # send the message to each recipient in the broadcast list
             for id in broadcast:
                 # get username without @ symbol
@@ -169,6 +173,12 @@ def accept_message(sock, mask):
                 if user in following_list and user!=client_name:
                     sock = client[1]
                     sock.send(msg.encode())
+                # send msg to every client following a term in the sentence
+                for term in terms:
+                    if term in following_list:
+                        sock = client[1]
+                        sock.send(msg.encode())
+                
 
 
 
