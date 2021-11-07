@@ -81,7 +81,7 @@ def accept_message(sock, mask):
     # If message received is not empty
     if msg:
         user_name = get_username_by_socket(sock)
-        words = msg.split(' ')
+        words = msg.split()
         print(f"\n{msg}")
         # Check for disconnect message
         if (words[0]=='DISCONNECT' and words[1]==user_name and words[2]=='CHAT/1.0'):
@@ -139,8 +139,32 @@ def accept_message(sock, mask):
             else:
                 message(sock, f"Unknown command: {words[1]}")
         else:
-            # Send the message to every client (except the sender)
-            forward_message(sock, msg)
+            
+            user = words[0].strip(":")
+            # Remove username from msg
+            words.remove(words[0])
+            # list containing recipient usernames
+            broadcast = []
+            # append the usernames of recipients
+            for word in words:
+                if word.startswith("@"):
+                    broadcast.append(word)
+            # send the message to each recipient in the broadcast list
+            for id in broadcast:
+                # get username without @ symbol
+                name = id.strip("@")
+                print(f"line 156 {name}")
+                # get socket corresponding to username
+                sock = get_socket_by_username(name)
+                # if the list contains @all then send to every recipient
+                if(id=="@all"):
+                    forward_message(get_socket_by_username(user), msg)
+                elif(sock!= None):
+                    sock.send(msg.encode())
+            
+            # todo: make followers list and send the msg to all followers
+
+
 
 # get list of all usernames connected 
 def getAll():
