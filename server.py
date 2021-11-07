@@ -88,6 +88,24 @@ def accept_message(sock, mask):
         elif (words[1]=='!list'):
             list_res = getAll()
             message(sock, list_res)
+        elif (words[1]=='!follow?'):
+            following = get_Following(sock)
+            if following is not None:
+                following_str = ""
+                for follow in following:
+                    if follow != "" or follow!= " ":
+                        following_str += follow + " "
+                following_str.rstrip(" ")
+                following_str.replace(' ', ',')
+                message(sock, following_str)
+        elif (words[1]=="!follow" and words[2]!= ""):
+            user = words[2] 
+            if get_socket_by_username(user) is None:
+                message(sock, "USER DOES NOT EXIST!")
+            else:
+                following = get_Following(sock)
+                following.append(f"@{user}")
+                message(sock, f"You are now following {user}")
         else:
             # Send the message to every client (except the sender)
             forward_message(sock, msg)
@@ -120,8 +138,9 @@ def accept_client(sock, mask):
     # If username is unique
     elif get_socket_by_username(user_name) == None:
         print(f"\nNew client connected from: {addr}")
+        
         # Append client object to client_list
-        client_list.append((user_name, client_sock))
+        client_list.append((user_name, client_sock, ['@all']))
         # Send registration message to client and print to server 
         welcome_msg = f"Welcome {user_name}!"
         message_all(welcome_msg)
@@ -165,7 +184,12 @@ def remove_sock(sock):
             client_list.remove(client)
                         
 
-
+def get_Following(sock):
+    for client in client_list:
+        if client[1]==sock:
+            list = client[2]
+            return list
+    return None
 
 # Get client socket given the username
 def get_socket_by_username(user_name):
