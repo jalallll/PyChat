@@ -8,7 +8,7 @@ import selectors
 
 # Main function
 def main():
-    global sel, client_list, SERVER_RESPONSES
+    global sel, client_list, SERVER_RESPONSES, SERVER_COMMANDS
 
     # Initialize selector
     sel = selectors.DefaultSelector()
@@ -22,7 +22,14 @@ def main():
     'USER_EXISTS': '401 user already registered',
     'SERVER_DC': 'DISCONNECT CHAT/1.0',
     'REG_SUCCESS': '200 registration successful'
-}
+    }
+    SERVER_COMMANDS = {
+        '!list': 'List all users',
+        '!follow term': 'Follow the specific term (if you are NOT currently following it)' ,
+        '!unfollow term': 'Unfollow the specific term (if you are currently following it)',
+        '!follow @user': 'Follow the specific user (if you are NOT currently following it)',
+        '!unfollow @user': 'Unfollow the specific user (if you are currently following it'
+    }
     
     
     # create server socket
@@ -69,6 +76,8 @@ def main():
 # Accept message from client socket
 def accept_message(sock, mask):
     msg = sock.recv(1024).decode().strip('\n')
+    following = get_Following(sock)
+
     # If message received is not empty
     if msg:
         user_name = get_username_by_socket(sock)
@@ -81,36 +90,54 @@ def accept_message(sock, mask):
             dc_res = f"Disconnected @{user_name}\n"
             message_all(dc_res)
             sock.close()
+        elif (words[1].startswith('!')):
         # check for help msg    
-        elif (words[1]=='help'):
-            msg = "help"
-            message(sock, msg)
-        elif (words[1]=='!list'):
-            list_res = getAll()
-            message(sock, list_res)
-        elif (words[1]=='!follow?'):
-            following = get_Following(sock)
-            if following is not None:
-                following_str = ""
-                for follow in following:
-                    if follow != "" or follow!= " ":
-                        following_str += follow + " "
-                following_str.rstrip(" ")
-                following_str.replace(' ', ',')
-                message(sock, following_str)
-        elif (words[1]=="!follow" or words[1]=="!unfollow" and words[2]!=""):
-            user = words[2] 
-            if get_socket_by_username(user) is None:
-                message(sock, "USER DOES NOT EXIST!")
-            else:
-                following = get_Following(sock)
-                if words[1]=="!follow":
-                    following.append(f"@{user}")
-                    message(sock, f"You are now following {user}")
+            if (words[1]=='!help'):
+                for key in SERVER_COMMANDS:
+                    msg = f"{key}: {SERVER_COMMANDS[key]}"
+                    message(sock, msg)
+            elif (words[1]=='!list'):
+                list_res = getAll()
+                message(sock, list_res)
+            elif (words[1]=='!follow?'):
+                if following is not None:
+                    following_str = ""
+                    for follow in following:
+                        if follow != "" or follow!= " ":
+                            following_str += follow + " "
+                    following_str.rstrip(" ")
+                    following_str.replace(' ', ',')
+                    message(sock, following_str)
+            elif ((words[1]=="!follow" or words[1]=="!unfollow")):
+                term = words[2]
+                # Can't follow or unfollow @all
+                if term == "@all":
+                    message(sock, f"Can not perform {words[1]} on {term}")
+                # if username doesnt exist
+                elif term.startswith("@") and get_socket_by_username(term.lstrip("@")) is None:
+                    message(sock, "USER DOES NOT EXIST!")
+                # Can't perform follow or unfollow on yourself
+                elif term == f"@{user_name}":
+                    message(sock, f"Can not perform {words[1]} on yourself")
+                # if user exists
                 else:
-                    following.remove(f"@{user}")
-                    message(sock, f"You have unfollowed {user}")
-
+                    if words[1]=="!follow":
+                        if term in following in following:
+                            message(sock, f"You are already following {term}")
+                        else:  
+                            following.append(term)
+                            message(sock, f"You are now following {term}")
+                    elif words[1]=="!unfollow":
+                        print(following)
+                        if term not in following:
+                            message(sock, f"You are not following {term}")
+                        if term == "@all":
+                            message(sock, f"You can not unfollow {term}")
+                        else:
+                            following.remove(term)
+                            message(sock, f"You have unfollowed {term}")
+            else:
+                message(sock, f"Unknown command: {words[1]}")
         else:
             # Send the message to every client (except the sender)
             forward_message(sock, msg)
@@ -123,6 +150,7 @@ def getAll():
             list_res += client[0] + ", "
     return list_res.strip(', ')
 
+    
 
 # Accept new inbound client connections
 def accept_client(sock, mask):
@@ -168,7 +196,7 @@ def message_all(msg):
     print(f"\n{res}")
 
 def message(sock, msg):
-    res = f"[SERVER]: {msg}"
+    res = f"\n[SERVER]: {msg}"
     sock.send(res.encode())
     print(f"\n{res}")
 
