@@ -173,7 +173,7 @@ def accept_client(sock, mask):
         print(f"\nNew client connected from: {addr}")
         
         # Append client object to client_list
-        client_list.append((user_name, client_sock, ['@all']))
+        client_list.append((user_name, client_sock, ['@all', f"@{user_name}"]))
         # Send registration message to client and print to server 
         welcome_msg = f"Welcome {user_name}!"
         message_all(welcome_msg)
