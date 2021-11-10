@@ -8,7 +8,7 @@ import selectors
 
 # Main function
 def main():
-    global sel, client_list, SERVER_RESPONSES, SERVER_COMMANDS
+    global sel, client_list, SERVER_RESPONSES, SERVER_COMMANDS, server_socket
 
     # Initialize selector
     sel = selectors.DefaultSelector()
@@ -48,7 +48,7 @@ def main():
 
     # handle ctrl + c
     def signal_handler(signum, frame):
-        print("\nInterruption received, shutting down server")
+        print("\nShutting down server due to ctrl+c event...")
         message_all(SERVER_RESPONSES['SERVER_DC'])
         sys.exit()
     
@@ -93,50 +93,50 @@ def accept_message(sock, mask):
             message_all(dc_res)
             sock.close()
         elif (words[1].startswith('!')):
-        # check for help msg    
+        # check for help command    
             if (words[1]=='!help'):
                 for key in SERVER_COMMANDS:
                     msg = f"{key}: {SERVER_COMMANDS[key]}"
                     message(sock, msg)
+            # check for !list command
             elif (words[1]=='!list'):
                 list_res = getAll()
                 message(sock, list_res)
+            # check for !exit command
             elif words[1]=='!exit':
                 remove_sock(sock)
                 message_all(f"Disconnected @{user_name}")
+            # check for !attach command
             elif words[1]=='!attach' and words[2]!="" and words[3]!="":
+                sock.setblocking(True)
                 file_name = words[2]
                 users=[]
                 terms = []
+                # find users in !attach command string (@ prefix)
+                # if word starts with @ then its a username, else the word is a term
                 for x in range(3, len(words)):
                     if x!="":
                         if words[x].startswith("@"):
                             users.append(words[x])
                         else: terms.append(words[x])
-                print(f"line 107: writing file {file_name}")
-                file = open(f"{user_name}_{file_name}", 'wb')
-                #sock.setblocking(True)
+                print(f"writing file {file_name}")
+                file = open(f"{file_name}", 'wb')
                 chunk = sock.recv(1024)
                 while chunk:
-                    print("line 121")
                     file.write(chunk)
                     chunk = sock.recv(1024)
                 file.close()
-                print("saved file, about to open new file")
-                f = open(f"{user_name}_{file_name}", 'rb')
-                print("opened new file")
+                f = open(f"{file_name}", 'rb')
                 data = f.read(1024)
-                print("read new file data")
                 while data:
-                    print("while loop")
                     conn = get_socket_by_username(words[3].strip("@"))
                     conn.send(data)
                     data = file.read(1024)
-                #sock.setblocking(False)
+                sock.setblocking(False)
 
                 file.close()
                 f.close()
-
+            # check for !follow? command
             elif (words[1]=='!follow?'):
                 if following is not None:
                     following_str = ""
@@ -146,6 +146,7 @@ def accept_message(sock, mask):
                     following_str.rstrip(" ")
                     following_str.replace(' ', ',')
                     message(sock, following_str)
+            # check for !follow or !unfollow command
             elif ((words[1]=="!follow" or words[1]=="!unfollow")):
                 term = words[2]
                 # Can't follow or unfollow @all
@@ -216,8 +217,6 @@ def accept_message(sock, mask):
                     if term in following_list:
                         sock = client[1]
                         sock.send(msg.encode())
-                
-
 
 
 # get list of all usernames connected 
@@ -294,7 +293,7 @@ def remove_sock(sock):
             message(sock,SERVER_RESPONSES['SERVER_DC'])
             client_list.remove(client)
                         
-
+#  get following count corresponding to client socket
 def get_Following(sock):
     for client in client_list:
         if client[1]==sock:

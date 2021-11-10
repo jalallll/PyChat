@@ -76,6 +76,7 @@ def main():
                         msg = sys.stdin.readline()
                         words = msg.split()
                         if words[0]=="!attach":
+                            client_socket.setblocking(True)
                             send_msg = f"@{USER}: {msg}"
                             client_socket.send(send_msg.encode())
                             name = words[1]
@@ -84,7 +85,10 @@ def main():
                             while data:
                                 client_socket.send(data)
                                 data = file.read(1024)
+                                print(data)
                             file.close()
+                            client_socket.setblocking(False)
+
                         else:
                             send_msg = f"@{USER}: {msg}"
                             client_socket.send(send_msg.encode())
